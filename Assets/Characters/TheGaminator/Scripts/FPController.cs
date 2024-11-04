@@ -53,6 +53,7 @@ public class FPController : MonoBehaviour
 
         cameraRot = cam.transform.localRotation;
         CharacterRot = this.transform.localRotation;
+        
 
         health = maxHealth;
     }

@@ -38,7 +38,7 @@ public class OpenDoor : MonoBehaviour
         if (Input.GetKey(KeyCode.E) && IsAtDoor == true)
         {
             CodePannel.SetActive(true);
-            
+            Cursor.lockState = CursorLockMode.Locked;
         }
 
     }
@@ -53,7 +53,8 @@ public class OpenDoor : MonoBehaviour
     {
         IsAtDoor = false;
         CodePannel.SetActive(false);
-        
+            Cursor.lockState = CursorLockMode.None;
+
 
     }
 
