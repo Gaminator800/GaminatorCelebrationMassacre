@@ -7,6 +7,8 @@ using UnityEngine;
 public class FPController : MonoBehaviour
 {
     public GameObject cam;
+    public GameObject GaminatorPrefab;
+    public Transform shotDirection;
     public Animator anim;
     public AudioSource[] footsteps;
     public AudioSource Jump;
@@ -31,9 +33,9 @@ public class FPController : MonoBehaviour
     //Inventory
     int ammo = 0;
     int maxAmmo = 216;
-    int health = 0;
+    int health = 100;
     int maxHealth = 100;
-    int ammoClip = 0;
+    int ammoClip = 18;
     int ammoClipMax = 18;
 
     bool playingWalking = false;
@@ -44,6 +46,21 @@ public class FPController : MonoBehaviour
 
     Quaternion cameraRot;
     Quaternion CharacterRot;
+
+    public void TakeHit(float amount)
+    {
+        health = (int) Mathf.Clamp(health - amount, 0, maxHealth);
+        //Debug.Log("Health: " + health);
+        if (health <= 0)
+        {
+            Vector3 pos = new Vector3(this.transform.position.y,
+                                        transform.position.z);
+            GameObject gaminator = Instantiate(GaminatorPrefab, pos, this.transform.rotation);
+            gaminator.GetComponent<Animator>().SetTrigger("Death");
+            GameStats.gameOver = true;
+            Destroy(this.gameObject);
+        }
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -58,6 +75,30 @@ public class FPController : MonoBehaviour
         health = maxHealth;
     }
 
+   void ProcessCyborgHit()
+    {
+        RaycastHit hitInfo;
+        if (Physics.Raycast(shotDirection.position, shotDirection.forward, out hitInfo, 200))
+        {
+            GameObject hitCyborg = hitInfo.collider.gameObject;
+            if (hitCyborg.tag == "Cyborg")
+            {
+                if (Random.Range(0, 10) < 5)
+                {
+                    GameObject rdPrefab = hitCyborg.GetComponent<CyborgController>().ragdoll;
+                    GameObject newRD = Instantiate(rdPrefab, hitCyborg.transform.position, hitCyborg.transform.rotation);
+                    newRD.transform.Find("Root").GetComponent<Rigidbody>().AddForce(shotDirection.forward * 10000);
+                    Destroy(hitCyborg);
+                }
+                else
+                {
+                    hitCyborg.GetComponent<CyborgController>().KillCyborg();
+                }
+            }
+        }
+
+    }
+
     // Update is called once per frame
     void Update()
     {
@@ -69,6 +110,7 @@ public class FPController : MonoBehaviour
             if (ammoClip > 0)
             {
                 anim.SetTrigger("Fire");
+                ProcessCyborgHit();
                 ammoClip--;
             }
             else if (anim.GetBool("Arm"))

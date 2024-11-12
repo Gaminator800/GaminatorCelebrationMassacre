@@ -5,8 +5,10 @@ using UnityEngine.AI;
 public class CyborgController : MonoBehaviour
 {
     public GameObject target;
+    public AudioSource[] splats;
     public float WalkingSpeed;
     public float RunningSpeed;
+    public float damageAmount = 5;
     public GameObject ragdoll;
     Animator anim;
     NavMeshAgent agent;
@@ -31,6 +33,7 @@ public class CyborgController : MonoBehaviour
 
     float DistanceToPlayer()
     {
+        if (GameStats.gameOver) return Mathf.Infinity;
         return Vector3.Distance(target.transform.position, this.transform.position);
     }
 
@@ -48,27 +51,39 @@ public class CyborgController : MonoBehaviour
         return false;
     }
 
+    public void KillCyborg()
+    {
+        TurnOffTriggers();
+        anim.SetBool("IsDead", true);
+        state = STATE.DEAD;
+    }
+
+    void PlayFootSplatAudio()
+    {
+        AudioSource audioSource = new AudioSource();
+        int n = Random.Range(1, splats.Length);
+
+        audioSource = splats[n];
+        audioSource.Play();
+        splats[n] = splats[0];
+        splats[0] = audioSource;
+        
+    }
+
+    public void DamagePlayer()
+    {
+        if (target != null)
+        {
+            target.GetComponent<FPController>().TakeHit(damageAmount);
+            PlayFootSplatAudio();
+        }
+    }
+
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.P))
-        {
-            if (Random.Range(0, 10) < 5)
-            {
-                GameObject rd = Instantiate(ragdoll, this.transform.position, this.transform.rotation);
-                rd.transform.Find("DEF-spine").GetComponent<Rigidbody>().AddForce(Camera.main.transform.forward * 10000);
-                Destroy(this.gameObject);
-            }
-            else
-            {
-                TurnOffTriggers();
-                anim.SetBool("IsDead", true);
-                state = STATE.DEAD;
-            }
-            return;
-                
-        }
-        if(target == null)
+        
+        if (target == null && GameStats.gameOver == false)
         {
             target = GameObject.FindWithTag("Player");
             return;
@@ -102,6 +117,7 @@ public class CyborgController : MonoBehaviour
                 }
                 break;
             case STATE.CHASE:
+                if (GameStats.gameOver) { TurnOffTriggers(); state = STATE.WANDER; return; }
                 agent.SetDestination(target.transform.position);
                 agent.stoppingDistance = 2;
                 TurnOffTriggers();
@@ -120,6 +136,7 @@ public class CyborgController : MonoBehaviour
 
                 break;
             case STATE.ATTACK:
+                if (GameStats.gameOver) { TurnOffTriggers(); state = STATE.WANDER; return; }
                 TurnOffTriggers();
                 anim.SetBool("IsAttacking", true);
                 this.transform.LookAt(target.transform.position);
